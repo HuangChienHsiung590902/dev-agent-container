@@ -253,35 +253,74 @@ skill_registry = SkillRegistry()
 @tool
 def search_web(query: str) -> str:
     """搜尋網路資訊 (使用 DuckDuckGo)"""
-    import subprocess
-    
     if not query:
         return "❌ 請輸入搜尋關鍵字"
     
     try:
-        # 使用 web-forager 搜尋
-        result = subprocess.run(
-            ["web-forager", "search", query],
-            capture_output=True,
-            text=True,
-            timeout=30,
-            env={"PATH": "/home/agent/.local/bin:/usr/local/bin:/usr/bin:/bin"}
-        )
+        from duckduckgo_search import DDGS
         
-        if result.returncode == 0:
-            output = result.stdout
-            # 簡化輸出格式
-            lines = output.strip().split('\n')
-            if len(lines) > 10:
-                # 取前 10 行
-                output = '\n'.join(lines[:15])
-            return f"🔍 搜尋結果 for '{query}':\n\n{output}"
-        else:
-            return f"❌ 搜尋失敗: {result.stderr}"
-    except subprocess.TimeoutExpired:
-        return "❌ 搜尋逾時，請稍後再試"
+        ddgs = DDGS()
+        results = ddgs.text(query, max_results=5)
+        
+        if not results:
+            return f"❌ 找不到 '{query}' 的搜尋結果"
+        
+        output = f"🔍 搜尋結果 for '{query}':\n\n"
+        
+        for i, r in enumerate(results, 1):
+            title = r.get('title', '無標題')
+            href = r.get('href', '')
+            body = r.get('body', '無內容')
+            
+            # 格式化輸出，不要 JSON 格式
+            output += f"【{i}】{title}\n"
+            output += f"   連結: {href}\n"
+            output += f"   內容: {body}\n"
+            output += "\n"
+        
+        return output.strip()
+        
     except Exception as e:
         return f"❌ 搜尋錯誤: {str(e)}"
+
+# 預設技能: 讀取網頁全文
+@tool  
+def fetch_url(url: str) -> str:
+    """讀取網頁內容"""
+    if not url:
+        return "❌ 請輸入網址"
+    
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+        
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        response.encoding = 'utf-8'
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # 移除 script 和 style
+        for tag in soup(['script', 'style']):
+            tag.decompose()
+        
+        # 取得標題
+        title = soup.title.string if soup.title else '無標題'
+        
+        # 取得內文
+        text = soup.get_text(separator='\n')
+        
+        # 清理空白行
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        content = '\n'.join(lines[:500])  # 限制長度
+        
+        return f"📄 {title}\n\n{content}"
+        
+    except Exception as e:
+        return f"❌ 讀取失敗: {str(e)}"
 
 # 預設技能: 讀取檔案
 @tool  
@@ -381,6 +420,13 @@ skill_registry.register(
     description="執行系統命令",
     aliases=["執行", "run", "cmd"],
     handler=lambda args: run_command.invoke(args) if args else "❌ 請輸入命令"
+)
+
+skill_registry.register(
+    name="fetch",
+    description="讀取網頁全文",
+    aliases=["讀取網頁", "fetch", "f2"],
+    handler=lambda args: fetch_url.invoke(args) if args else "❌ 請輸入網址"
 )
 
 # 執行技能的 slash command
