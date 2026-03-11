@@ -254,7 +254,7 @@ skill_registry = SkillRegistry()
 def search_web(query: str) -> str:
     """搜尋網路資訊並自動讀取內文 (使用 DuckDuckGo)"""
     if not query:
-        return "❌ 請輸入搜尋關鍵字"
+        return "請輸入搜尋關鍵字"
     
     try:
         from duckduckgo_search import DDGS
@@ -274,30 +274,24 @@ def search_web(query: str) -> str:
             href = r.get('href', '')
             body = r.get('body', '無內容')
             
-            # 標題
             output += f"[{i}] {title}\n"
             output += f"網址: {href}\n"
             output += f"摘要: {body}\n"
             
-            # 自動抓取內文
             if href:
                 try:
                     headers = {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                        'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                     }
-                    resp = requests.get(href, headers=headers, timeout=8, allow_redirects=True)
+                    resp = requests.get(href, headers=headers, timeout=8)
                     
                     if resp.status_code == 200:
                         resp.encoding = 'utf-8'
                         soup = BeautifulSoup(resp.text, 'html.parser')
                         
-                        # 移除不要的元素
-                        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
+                        for tag in soup(['script', 'style', 'nav', 'footer']):
                             tag.decompose()
                         
-                        # 取得內文
                         text = soup.get_text(separator='\n')
                         lines = [line.strip() for line in text.split('\n') if line.strip()]
                         content = '\n'.join(lines[:80])
@@ -308,9 +302,9 @@ def search_web(query: str) -> str:
                                 if line.strip():
                                     output += f"  {line}\n"
                     else:
-                        output += f"\n無法讀取網頁 (HTTP {resp.status_code})\n"
+                        output += f"\n無法讀取網頁\n"
                         
-                except Exception as e:
+                except:
                     output += f"\n無法讀取網頁\n"
             
             output += "\n" + "=" * 40 + "\n\n"
@@ -319,6 +313,11 @@ def search_web(query: str) -> str:
         
     except Exception as e:
         return f"搜尋錯誤: {str(e)}"
+
+# 直接呼叫搜尋函式（不用 LangChain tool）
+def do_search(query: str) -> str:
+    """直接執行搜尋"""
+    return search_web(query)
 
 # 預設技能: 讀取網頁全文
 @tool  
@@ -421,7 +420,7 @@ skill_registry.register(
     name="search",
     description="搜尋網路資訊",
     aliases=["搜尋", "search", "s"],
-    handler=lambda args: str(search_web.invoke(args).content) if args else "❌ 請輸入搜尋關鍵字"
+    handler=lambda args: do_search(args) if args else "請輸入搜尋關鍵字"
 )
 
 skill_registry.register(
