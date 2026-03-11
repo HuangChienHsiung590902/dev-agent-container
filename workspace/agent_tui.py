@@ -139,7 +139,6 @@ class AgentTUI(App):
         Binding("ctrl+l", "clear", "Clear", show=True),
         Binding("up", "select_candidate_up", "Up", show=False),
         Binding("down", "select_candidate_down", "Down", show=False),
-        Binding("enter", "apply_candidate", "Apply", show=False),
         Binding("escape", "hide_candidates", "Hide", show=False),
     ]
 
@@ -168,7 +167,11 @@ class AgentTUI(App):
         r.write("-" * 40)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
-        self.action_submit()
+        # 如果有候選，先送出候選
+        if self.candidates:
+            self.action_apply_candidate()
+        else:
+            self.action_submit()
 
     def on_input_changed(self, event: Input.Changed) -> None:
         """輸入變更時搜尋候選"""
@@ -221,12 +224,23 @@ class AgentTUI(App):
             self.update_candidates_display()
 
     def action_apply_candidate(self) -> None:
-        """套用選中的候選"""
+        """套用選中的候選並送出"""
         if self.candidates and self.selected_index < len(self.candidates):
             inp = self.query_one("#input", Input)
-            inp.value = self.candidates[self.selected_index]
+            msg = self.candidates[self.selected_index].strip()
+            
+            # 直接送出
             self.candidates = []
             self.update_candidates_display()
+            
+            # 儲存並送出
+            save_message("user", msg)
+            inp.value = ""
+            
+            r = self.query_one("#response", RichLog)
+            r.write(f"\n[bold]你:[/bold] {msg}")
+            r.write("-" * 40)
+            self.send_message(msg)
 
     def action_hide_candidates(self) -> None:
         """隱藏候選"""
