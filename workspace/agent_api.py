@@ -252,15 +252,17 @@ skill_registry = SkillRegistry()
 # 預設技能: 搜尋網路 (使用 DuckDuckGo)
 @tool
 def search_web(query: str) -> str:
-    """搜尋網路資訊 (使用 DuckDuckGo)"""
+    """搜尋網路資訊並自動讀取內文 (使用 DuckDuckGo)"""
     if not query:
         return "❌ 請輸入搜尋關鍵字"
     
     try:
         from duckduckgo_search import DDGS
+        import requests
+        from bs4 import BeautifulSoup
         
         ddgs = DDGS()
-        results = ddgs.text(query, max_results=5)
+        results = ddgs.text(query, max_results=3)
         
         if not results:
             return f"❌ 找不到 '{query}' 的搜尋結果"
@@ -272,11 +274,37 @@ def search_web(query: str) -> str:
             href = r.get('href', '')
             body = r.get('body', '無內容')
             
-            # 格式化輸出，不要 JSON 格式
             output += f"【{i}】{title}\n"
             output += f"   連結: {href}\n"
-            output += f"   內容: {body}\n"
-            output += "\n"
+            output += f"   摘要: {body}\n"
+            
+            # 自動抓取內文
+            if href:
+                try:
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                    resp = requests.get(href, headers=headers, timeout=8)
+                    resp.encoding = 'utf-8'
+                    soup = BeautifulSoup(resp.text, 'html.parser')
+                    
+                    # 移除 script 和 style
+                    for tag in soup(['script', 'style']):
+                        tag.decompose()
+                    
+                    # 取得內文
+                    text = soup.get_text(separator='\n')
+                    lines = [line.strip() for line in text.split('\n') if line.strip()]
+                    content = '\n'.join(lines[:200])  # 限制長度
+                    
+                    output += f"   內文:\n"
+                    for line in content.split('\n')[:15]:  # 最多15行
+                        output += f"      {line}\n"
+                        
+                except Exception:
+                    pass  # 抓取失敗就略過
+            
+            output += "\n" + "─" * 40 + "\n\n"
         
         return output.strip()
         
