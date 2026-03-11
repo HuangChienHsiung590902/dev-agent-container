@@ -262,21 +262,22 @@ def search_web(query: str) -> str:
         from bs4 import BeautifulSoup
         
         ddgs = DDGS()
-        results = ddgs.text(query, max_results=3)
+        results = ddgs.text(query, max_results=2)
         
         if not results:
-            return f"❌ 找不到 '{query}' 的搜尋結果"
+            return f"找不到 '{query}' 的搜尋結果"
         
-        output = f"🔍 搜尋結果 for '{query}':\n\n"
+        output = f"=== 搜尋結果: {query} ===\n\n"
         
         for i, r in enumerate(results, 1):
             title = r.get('title', '無標題')
             href = r.get('href', '')
             body = r.get('body', '無內容')
             
-            output += f"【{i}】{title}\n"
-            output += f"   連結: {href}\n"
-            output += f"   摘要: {body}\n"
+            # 標題
+            output += f"[{i}] {title}\n"
+            output += f"網址: {href}\n"
+            output += f"摘要: {body}\n"
             
             # 自動抓取內文
             if href:
@@ -285,44 +286,39 @@ def search_web(query: str) -> str:
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
                         'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-                        'Accept-Encoding': 'gzip, deflate',
-                        'Connection': 'keep-alive',
                     }
-                    resp = requests.get(href, headers=headers, timeout=10, allow_redirects=True)
+                    resp = requests.get(href, headers=headers, timeout=8, allow_redirects=True)
                     
                     if resp.status_code == 200:
                         resp.encoding = 'utf-8'
                         soup = BeautifulSoup(resp.text, 'html.parser')
                         
-                        # 移除 script 和 style
-                        for tag in soup(['script', 'style', 'nav', 'footer', 'header']):
+                        # 移除不要的元素
+                        for tag in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
                             tag.decompose()
-                        
-                        # 取得標題
-                        page_title = soup.title.string if soup.title else ''
                         
                         # 取得內文
                         text = soup.get_text(separator='\n')
                         lines = [line.strip() for line in text.split('\n') if line.strip()]
-                        content = '\n'.join(lines[:150])
+                        content = '\n'.join(lines[:80])
                         
                         if content:
-                            output += f"   📄 內文:\n"
-                            for line in content.split('\n')[:20]:
+                            output += "\n內文:\n"
+                            for line in content.split('\n')[:12]:
                                 if line.strip():
-                                    output += f"      {line}\n"
+                                    output += f"  {line}\n"
                     else:
-                        output += f"   ⚠️ 無法讀取 (HTTP {resp.status_code})\n"
+                        output += f"\n無法讀取網頁 (HTTP {resp.status_code})\n"
                         
                 except Exception as e:
-                    output += f"   ⚠️ 無法讀取: {str(e)[:50]}\n"
+                    output += f"\n無法讀取網頁\n"
             
-            output += "\n" + "─" * 40 + "\n\n"
+            output += "\n" + "=" * 40 + "\n\n"
         
         return output.strip()
         
     except Exception as e:
-        return f"❌ 搜尋錯誤: {str(e)}"
+        return f"搜尋錯誤: {str(e)}"
 
 # 預設技能: 讀取網頁全文
 @tool  
