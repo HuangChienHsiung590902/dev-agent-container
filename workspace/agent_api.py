@@ -421,7 +421,7 @@ skill_registry.register(
     name="search",
     description="搜尋網路資訊",
     aliases=["搜尋", "search", "s"],
-    handler=lambda args: search_web.invoke(args) if args else "❌ 請輸入搜尋關鍵字"
+    handler=lambda args: str(search_web.invoke(args).content) if args else "❌ 請輸入搜尋關鍵字"
 )
 
 skill_registry.register(
