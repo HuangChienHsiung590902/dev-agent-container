@@ -1,0 +1,34 @@
+# Environment files (API keys, secrets)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
+
+# Debug and test files
+debug_*.py
+test_*.py
+*_test.py
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.egg-info
+.venv
+venv/
+
+# Logs
+*.log

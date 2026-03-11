@@ -1,0 +1,77 @@
+# =============================================================================
+# Dev Agent Container - Docker Compose
+# Docker-in-Docker (DinD) configuration
+# =============================================================================
+
+services:
+  dev-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dev-agent
+    hostname: dev-agent
+    
+    # Privileged mode required for DinD
+    privileged: true
+    
+    # Volume mounts
+    volumes:
+      # Docker socket (optional - for mounting host docker)
+      # Uncomment if you want to use host Docker instead of DinD
+      # - /var/run/docker.sock:/var/run/docker.sock
+      
+      # Project workspace - change path as needed
+      - ./workspace:/home/agent/workspace
+      
+      # Docker data directory
+      - docker-data:/var/lib/docker
+    
+    # Environment variables
+    environment:
+      - TZ=Asia/Taipei
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - DOCKER_BUILDKIT=1
+      - COMPOSE_DOCKER_CLI_BUILD=1
+    
+    # Working directory
+    working_dir: /home/agent/workspace
+    
+    # Network
+    network_mode: bridge
+    
+    # Ports
+    ports:
+      - "8000:8000"   # Agent API
+      - "8888:8888"   # Jupyter
+    
+    # Security options (alternative to privileged, but may not work for DinD)
+    # security_opt:
+    #   - seccomp:unconfined
+    #   - apparmor:unconfined
+    
+    # Sysctls required for Docker in Docker
+    sysctls:
+      - net.ipv4.ip_forward=1
+    
+    # Resources
+    mem_limit: 4g
+    cpus: 2
+    
+    # Healthcheck for Docker daemon
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Auto-restart
+    restart: unless-stopped
+    
+    # tty for interactive use
+    tty: true
+    stdin_open: true
+
+volumes:
+  docker-data:
+    driver: local

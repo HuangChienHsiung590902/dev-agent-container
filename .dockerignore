@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Node
+node_modules
+npm-debug.log
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.egg-info
+.venv
+venv/
+
+# Build outputs
+dist
+build
+*.tar.gz
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temp
+*.tmp
+temp/
+
+# Debug and test files
+debug_*.py
+test_*.py
+*_test.py
+
+# Environment files (API keys, secrets)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials.json
