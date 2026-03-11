@@ -282,27 +282,40 @@ def search_web(query: str) -> str:
             if href:
                 try:
                     headers = {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                        'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+                        'Accept-Encoding': 'gzip, deflate',
+                        'Connection': 'keep-alive',
                     }
-                    resp = requests.get(href, headers=headers, timeout=8)
-                    resp.encoding = 'utf-8'
-                    soup = BeautifulSoup(resp.text, 'html.parser')
+                    resp = requests.get(href, headers=headers, timeout=10, allow_redirects=True)
                     
-                    # 移除 script 和 style
-                    for tag in soup(['script', 'style']):
-                        tag.decompose()
-                    
-                    # 取得內文
-                    text = soup.get_text(separator='\n')
-                    lines = [line.strip() for line in text.split('\n') if line.strip()]
-                    content = '\n'.join(lines[:200])  # 限制長度
-                    
-                    output += f"   內文:\n"
-                    for line in content.split('\n')[:15]:  # 最多15行
-                        output += f"      {line}\n"
+                    if resp.status_code == 200:
+                        resp.encoding = 'utf-8'
+                        soup = BeautifulSoup(resp.text, 'html.parser')
                         
-                except Exception:
-                    pass  # 抓取失敗就略過
+                        # 移除 script 和 style
+                        for tag in soup(['script', 'style', 'nav', 'footer', 'header']):
+                            tag.decompose()
+                        
+                        # 取得標題
+                        page_title = soup.title.string if soup.title else ''
+                        
+                        # 取得內文
+                        text = soup.get_text(separator='\n')
+                        lines = [line.strip() for line in text.split('\n') if line.strip()]
+                        content = '\n'.join(lines[:150])
+                        
+                        if content:
+                            output += f"   📄 內文:\n"
+                            for line in content.split('\n')[:20]:
+                                if line.strip():
+                                    output += f"      {line}\n"
+                    else:
+                        output += f"   ⚠️ 無法讀取 (HTTP {resp.status_code})\n"
+                        
+                except Exception as e:
+                    output += f"   ⚠️ 無法讀取: {str(e)[:50]}\n"
             
             output += "\n" + "─" * 40 + "\n\n"
         
